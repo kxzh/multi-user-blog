@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>{{username}}'s Blog</h1>
+    <hr />
+    {% if posts.count() == 0 %}
+        <p>
+            You haven't posted anything yet.
+        </p>
+    {% else %}
+        {% for p in posts %}
+            {{ p.render() | safe }}
+            <br /><hr /><br />
+        {% endfor %}
+    {% endif %}
+{% endblock %}

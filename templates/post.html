@@ -1,0 +1,19 @@
+<div class='post'>
+    <div class='post-heading'>
+        <div class='post-title'>
+            <p>Title</p>
+            {{p.subject}}
+        </div>
+
+        <div class='post-date'>
+            <p>Date</p>
+            {{p.created.strftime("%m-%d-%Y")}}
+        </div>
+
+        <div class='post-content'>
+            <p>Content</p>
+            {{p._render_text | safe}}
+        </div>
+    </div>
+
+</div>
