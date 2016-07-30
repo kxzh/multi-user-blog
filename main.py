@@ -214,7 +214,22 @@ class PostPage(Handler):
             self.error(404)
             return
 
-        self.render('permalink.html', post = post)
+        is_author = False
+        username_cookie = self.request.cookies.get('username')
+        if post.username == get_user_name(username_cookie):
+            is_author = True
+        self.render('permalink.html', post = post, is_author = is_author, post_id = post_id)
+
+class DeletePost(Handler):
+    def get(self, post_id):
+        print post_id
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
+
+        username_cookie = self.request.cookies.get('username')
+        if post.username == get_user_name(username_cookie):
+            post.delete()
+        self.redirect('/welcome')
 
 app = webapp2.WSGIApplication([('/', Signup),
                                ('/signup', Signup),
@@ -222,4 +237,5 @@ app = webapp2.WSGIApplication([('/', Signup),
                                ('/login', Login),
                                ('/logout', Logout),
                                ('/newpost', NewPost),
-                               ('/blog/([0-9]+)', PostPage)], debug=True)
+                               ('/blog/([0-9]+)', PostPage),
+                               ('/deletepost/([0-9]+)', DeletePost)], debug=True)

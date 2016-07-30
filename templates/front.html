@@ -3,14 +3,17 @@
 {% block content %}
     <p>log in: {{username}}</p>
     <hr />
-    {% if posts.count() == 0 %}
-        <p>
-            You haven't posted anything yet.
-        </p>
-    {% else %}
-        {% for p in posts %}
-            {{ p.render() | safe }}
-            <br /><br />
-        {% endfor %}
-    {% endif %}
+
+    {% for p in posts %}
+        {{ p.render() | safe }}
+        <br />
+        <a href= {{ '/blog/' + p.key().id()|string}}  class="view"> View </a>
+        <br />
+        {% if username == p.username %}
+            <a href= {{ '/deletepost/' + p.key().id()|string}}  class="delete"> Delete </a>
+        {% endif %}
+        <br />
+        <hr />
+    {% endfor %}
+
 {% endblock %}
