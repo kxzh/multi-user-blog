@@ -194,8 +194,7 @@ class NewPost(Handler):
         username_cookie = self.request.cookies.get('username')
         username = get_user_name(username_cookie)
         if not username:
-            error = 'Need to use cookie to login'
-            self.render('newpost.html', subject=subject, content=content, error=error)
+            self.render('login.html')
         else:
             subject = self.request.get('subject')
             content = self.request.get('content')
@@ -204,7 +203,7 @@ class NewPost(Handler):
                 p.put() # store new object into database
                 self.redirect('/blog/%s' % str(p.key().id()))
             else:
-                error = 'subject and content, please!'
+                error = 'subject and content cannot be empty!'
                 self.render('newpost.html', subject=subject, content=content, error=error)
 
 class PostPage(Handler):
@@ -220,18 +219,47 @@ class PostPage(Handler):
         username_cookie = self.request.cookies.get('username')
         if post.username == get_user_name(username_cookie):
             is_author = True
-        self.render('permalink.html', post = post, is_author = is_author, post_id = post_id)
+        self.render('permalink.html', post = post, is_author = is_author)
 
 class DeletePost(Handler):
     def get(self, post_id):
-        print post_id
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
-
         username_cookie = self.request.cookies.get('username')
         if post.username == get_user_name(username_cookie):
             post.delete()
         self.redirect('/welcome')
+
+class EditPost(Handler):
+    def get(self, post_id):
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
+        username_cookie = self.request.cookies.get('username')
+        if post.username == get_user_name(username_cookie):
+            self.render('editpost.html', subject=post.subject, content=post.content)
+        else:
+            self.redirect('/welcome')
+
+    def post(self, post_id):
+        username_cookie = self.request.cookies.get('username')
+        username = get_user_name(username_cookie)
+        if not username:
+            self.render('login.html')
+        else:
+            subject = self.request.get('subject')
+            content = self.request.get('content')
+            if subject and content:
+                key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+                post = db.get(key)
+                post.subject = subject
+                post.content = content
+                post.put()
+                self.redirect('/blog/%s' % str(post.key().id()))
+            else:
+                error = 'subject and content cannot be empty!'
+                self.render('newpost.html', subject=subject, content=content, error=error)
+
+
 
 app = webapp2.WSGIApplication([('/', Signup),
                                ('/signup', Signup),
@@ -239,5 +267,6 @@ app = webapp2.WSGIApplication([('/', Signup),
                                ('/login', Login),
                                ('/logout', Logout),
                                ('/newpost', NewPost),
+                               ('/editpost/([0-9]+)', EditPost),
                                ('/blog/([0-9]+)', PostPage),
                                ('/deletepost/([0-9]+)', DeletePost)], debug=True)

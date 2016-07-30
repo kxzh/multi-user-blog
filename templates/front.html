@@ -11,6 +11,8 @@
         <br />
         {% if username == p.username %}
             <a href= {{ '/deletepost/' + p.key().id()|string}}  class="delete"> Delete </a>
+            <br />
+            <a href= {{ '/editpost/' + p.key().id()|string}}  class="edit"> Edit </a>
         {% endif %}
         <br />
         <hr />
