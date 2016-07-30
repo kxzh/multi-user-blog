@@ -3,8 +3,20 @@
 {% block content %}
     {{post.render() | safe}}
     {% if is_author: %}
-        <a href= {{ '/deletepost/' + post.key().id()|string}}  class="delete"> Delete </a>
+        <a href= {{'/deletepost/' + post.key().id()|string}}  class="delete"> Delete </a>
         <br />
-        <a href= {{ '/editpost/' + post.key().id()|string}}  class="edit"> Edit </a>
+        <a href= {{'/editpost/' + post.key().id()|string}}  class="edit"> Edit </a>
     {% endif %}
+
+    <form method="post">
+        <label>
+            <input type="submit" value="like">
+            <div class="error">{{error}}</div>
+            <div class="like_message">{{message}}</div>
+        </label>
+
+    </form>
+
+
+
 {% endblock %}

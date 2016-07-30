@@ -19,7 +19,21 @@
             <p>Content</p>
             {{p._render_text | safe}}
         </div>
-        <br />
+        <hr />
+        <div class='post-likes'>
+            <p>liked by {{ p.like | count }} people</p>
+            {% set i = 0 %}
+            {% for pp_like in p.like %}
+                {% set i = i + 1 %}
+                <p>
+                    {{pp_like}}
+                </p>
+            {% endfor %}
+        </div>
+        <hr />
+
+
+
     </div>
 
 </div>

@@ -1,11 +1,17 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <p>log in: {{username}}</p>
+
     <hr />
+    {% if posts.count() == 0 %}
+        <p>
+            Be the first to post!
+        </p>
+    {% endif %}
 
     {% for p in posts %}
         {{ p.render() | safe }}
+
         <br />
         <a href= {{ '/blog/' + p.key().id()|string}}  class="view"> View </a>
         <br />
@@ -15,6 +21,15 @@
             <a href= {{ '/editpost/' + p.key().id()|string}}  class="edit"> Edit </a>
         {% endif %}
         <br />
+
+        <form method="post">
+            <label>
+                <input type="hidden" value="{{p.key().id()|string}}" name="post_id" />
+                <input type="submit" value="like">
+            </label>
+
+        </form>
+
         <hr />
     {% endfor %}
 
