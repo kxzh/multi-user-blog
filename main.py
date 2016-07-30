@@ -159,7 +159,7 @@ class Welcome(Handler):
         username_cookie = self.request.cookies.get('username')
         username = get_user_name(username_cookie)
         if username:
-            posts = db.GqlQuery("select * from Post where username = :username order by created desc limit 10", username = username)
+            posts = db.GqlQuery("select * from Post order by created desc limit 10")
             self.render('front.html', posts = posts, username = username)
         else:
             self.response.delete_cookie('username')

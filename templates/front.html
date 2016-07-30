@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>{{username}}'s Blog</h1>
+    <p>log in: {{username}}</p>
     <hr />
     {% if posts.count() == 0 %}
         <p>
@@ -10,7 +10,7 @@
     {% else %}
         {% for p in posts %}
             {{ p.render() | safe }}
-            <br /><hr /><br />
+            <br /><br />
         {% endfor %}
     {% endif %}
 {% endblock %}

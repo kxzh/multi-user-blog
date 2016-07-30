@@ -5,6 +5,11 @@
             {{p.subject}}
         </div>
 
+        <div class='post-author'>
+            <p>Author</p>
+            {{p.username}}
+        </div>
+
         <div class='post-date'>
             <p>Date</p>
             {{p.created.strftime("%m-%d-%Y")}}
@@ -14,6 +19,7 @@
             <p>Content</p>
             {{p._render_text | safe}}
         </div>
+        <hr />
     </div>
 
 </div>
