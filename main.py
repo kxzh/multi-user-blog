@@ -3,6 +3,8 @@ import re
 import jinja2
 import webapp2
 import hashlib
+import random
+import string
 
 from google.appengine.ext import db
 
@@ -10,6 +12,16 @@ template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                autoescape = True) # prevent injection, hecking
 
+def make_salt():
+    return ''.join(random.choice(string.letters) for x in xrange(5))
+
+def make_pw_hash(name, pw, salt):
+    h = hashlib.sha256(name + pw + salt).hexdigest()
+    return '%s,%s' % (h, salt)
+
+def valid_pw(name, pw, h):
+    salt = h.split(',')[1]
+    return h == make_pw_hash(name, pw, salt)
 
 def render_str(template, **params):
     # load file to create a ginja template
@@ -30,11 +42,12 @@ def username_exist(username):
     return existUser.count() != 0
 
 def login_varify(username, password):
-    existUser = db.GqlQuery("SELECT * FROM User WHERE username = :username AND password =:password", username = username, password = password)
-    if existUser.count() != 0:
-        return True
-    else:
-        return False
+    existUser = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
+
+    if existUser.count():
+        if valid_pw(username, password, existUser.get().password):
+            return True
+    return False
 
 PASS_RE = re.compile(_password_pattern)
 def valid_password(password):
@@ -128,8 +141,8 @@ class Signup(Handler):
         if have_error:
             self.render("signup.html", **params)
         else:
-            #self.response.headers['Content-Type'] = 'text/plain'
-            newUser = User(username=username, password=password, email=email)
+            hashed_credential = make_pw_hash(username, password, make_salt())
+            newUser = User(username=username, password=hashed_credential, email=email)
             newUser.put()
             username_cookie_val = make_secure_val(str(username))
             self.response.headers.add_header('Set-Cookie', 'username=%s'%username_cookie_val)
