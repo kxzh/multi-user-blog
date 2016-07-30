@@ -28,6 +28,7 @@ def render_str(template, **params):
     t = jinja_env.get_template(template)
     return t.render(params)
 
+# These patterns are from Udacity course
 _username_pattern = "^[a-zA-Z0-9_-]{3,20}$"
 _password_pattern = "^.{3,20}$"
 # email varification is simplified version, not to be used for production
@@ -89,6 +90,7 @@ class Post(db.Model):
         self._render_text = self.content.replace('\n', '<br>')
         return render_str('post.html', p = self)
 
+# This handler function is from udacity course video
 class Handler(webapp2.RequestHandler):
     def write(self, *a, **kw):
         self.response.out.write(*a, **kw)
