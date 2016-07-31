@@ -183,16 +183,22 @@ class Welcome(Handler):
             return
 
         username = self.cur_username()
+        user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
+        user = user_query.get()
+        if username in post.like:
+            # reclick will unliked
+            post.like.remove(username)
+            post.put()
+            user.like.remove(post_id)
+            user.put()
         # an author cannot like his own post
-        if post.username != username and username not in post.like:
+        elif post.username != username:
             post.like.append(username)
             post.put()
-            user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
-            user = user_query.get()
             user.like.append(post_id)
-            print('*******' + user.like[-1])
             user.put()
-
+        # wait for database update
+        time.sleep(0.5)
         self.redirect('/welcome')
 
 
@@ -260,25 +266,28 @@ class PostPage(Handler):
 
         is_author = False
         username = self.cur_username()
+        message = ''
         # an author cannot like his own post
         if post.username == username:
             is_author = True
-            error = 'This is your post.'
-            self.render('permalink.html', post = post, username = username, is_author = is_author, error = error)
+            message = 'This is your post.'
         else:
-            # an user cannot like a post more than once
+            user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
+            user = user_query.get()
+            # an user cannot like a post more than once.
             if username in post.like:
-                error = 'You have already liked this post'
-                self.render('permalink.html', post = post, username = username, is_author = is_author, error = error)
+                post.like.remove(username)
+                post.put()
+                message = 'unliked'
+                user.like.remove(post_id)
+                user.put()
             else:
                 post.like.append(username)
                 post.put()
-                message = "like + 1"
-                user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
-                user = user_query.get()
+                message = "like +1"
                 user.like.append(post_id)
                 user.put()
-                self.render('permalink.html', post = post, username = username, is_author = is_author, message = message)
+        self.render('permalink.html', post = post, username = username, is_author = is_author, message = message)
 
 class DeletePost(Handler):
     def get(self, post_id):
@@ -288,7 +297,7 @@ class DeletePost(Handler):
             username = self.cur_username()
             if post.username == username:
                 post.delete()
-        # wait for database update delay
+        # wait for database update
         time.sleep(0.5)
         self.redirect('/welcome')
 
