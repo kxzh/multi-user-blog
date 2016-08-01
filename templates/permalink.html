@@ -2,6 +2,11 @@
 
 {% block content %}
     {{post.render() | safe}}
+    <label>
+        <!-- <input type="submit" name="like_button" value="like"> -->
+        <div class="like_message">{{message}}</div>
+    </label>
+
     {% if is_author: %}
         <a href= {{'/deletepost/' + post.key().id()|string}}  class="delete"> Delete </a>
         <br />
@@ -10,12 +15,10 @@
 
     <form method="post">
         <label>
-            <input type="submit" value="like">
-            <div class="like_message">{{message}}</div>
+            <div>Comment</div>
+            <textarea name="comment">{{comment}}</textarea>
+            <br />
+            <input type="submit" name="comment_button">
         </label>
-
     </form>
-
-
-
 {% endblock %}

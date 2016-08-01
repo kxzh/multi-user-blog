@@ -79,19 +79,33 @@ class User(db.Model):
     password = db.StringProperty(required = True)
     email = db.StringProperty(required = True)
     like = db.StringListProperty(required = True)
+    post = db.StringListProperty(default=[])
 
 class Post(db.Model):
     username = db.StringProperty(required = True)
-    subject = db.StringProperty(required = True)
+    subject = db.StringProperty(default='')
     content = db.TextProperty(required = True)
-    created = db.DateTimeProperty(auto_now_add = True)
-    last_modified = db.DateTimeProperty(auto_now_add = True)
-    like = db.StringListProperty(required = True)
+    created = db.DateTimeProperty(auto_now_add = True, auto_now=False)
+    last_modified = db.DateTimeProperty(auto_now = True)
+    like = db.StringListProperty(default=[])
+    comment = db.ListProperty(db.Key)
 
     def render(self):
         # replace all new line char with line break html to render correctly
         self._render_text = self.content.replace('\n', '<br>')
-        return render_str('post.html', p = self)
+        comment_block = ''
+        for comment_key in self.comment:
+            comment_holder = db.get(comment_key)
+            if comment_holder:
+                comment_block += comment_holder.render()
+        return render_str('post.html', p = self, comment_block = comment_block)
+
+class Comment(Post):
+    parent_post_id = db.StringProperty(required = True)
+    def render(self):
+        # replace all new line char with line break html to render correctly
+        self._render_text = self.content.replace('\n', '<br>')
+        return render_str('comment.html', p = self)
 
 # This handler function is from udacity course video
 class Handler(webapp2.RequestHandler):
@@ -159,19 +173,23 @@ class Signup(Handler):
             newUser.put()
             username_cookie_val = make_secure_val(str(username))
             self.response.headers.add_header('Set-Cookie', 'username=%s'%username_cookie_val)
+            # wait for database update
+            time.sleep(0.5)
             self.redirect('/welcome')
-
-
 
 class Welcome(Handler):
     def get(self):
         username = self.cur_username()
         if username:
-            posts = db.GqlQuery("select * from Post order by created desc limit 10")
-            self.render('front.html', posts = posts, username = username)
-        else:
-            self.response.delete_cookie('username')
-            self.redirect('/signup')
+            user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
+            user = user_query.get()
+            if user:
+                posts = db.GqlQuery("SELECT * FROM Post order by created desc limit 10")
+                self.render('front.html', posts = posts, username = username)
+                return
+
+        self.response.delete_cookie('username')
+        self.redirect('/signup')
 
     def post(self):
         post_id = self.request.get('post_id')
@@ -224,22 +242,27 @@ class Logout(Handler):
 class NewPost(Handler):
     def get(self):
         username = self.cur_username()
-        self.render('newpost.html', username = username)
+        self.render('editpost.html', username = username)
 
     def post(self):
         username = self.cur_username()
-        if not username:
+        user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
+        user = user_query.get()
+        if not username or not user:
             self.render('login.html')
         else:
             subject = self.request.get('subject')
             content = self.request.get('content')
             if subject and content:
                 p = Post(parent=blog_key(), username=username, subject=subject, content=content, like=[])
-                p.put() # store new object into database
-                self.redirect('/blog/%s' % str(p.key().id()))
+                p.put()
+                post_id = p.key().id()
+                user.post.append(str(post_id))
+                user.put()
+                self.redirect('/blog/%s' % str(post_id))
             else:
                 error = 'subject and content cannot be empty!'
-                self.render('newpost.html', subject=subject, content=content, error=error)
+                self.render('editpost.html', post_type = 'New Post', subject=subject, content=content, error=error)
 
 class PostPage(Handler):
     def get(self, post_id):
@@ -257,46 +280,98 @@ class PostPage(Handler):
         self.render('permalink.html', post = post, is_author = is_author, username = username)
 
     def post(self, post_id):
-        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-        post = db.get(key)
+        like_button = self.request.get('like_button')
+        comment_button = self.request.get('comment_button')
 
-        if not post:
-            self.error(404)
-            return
+        if comment_button:
+            comment = self.request.get('comment')
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
 
-        is_author = False
-        username = self.cur_username()
-        message = ''
-        # an author cannot like his own post
-        if post.username == username:
-            is_author = True
-            message = 'This is your post.'
-        else:
+            if not post:
+                self.error(404)
+                return
+
+            is_author = False
+            username = self.cur_username()
+            message = ''
+            # an author cannot like his own post
+            if post.username == username:
+                is_author = True
+
             user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
             user = user_query.get()
-            # an user cannot like a post more than once.
-            if username in post.like:
-                post.like.remove(username)
-                post.put()
-                message = 'unliked'
-                user.like.remove(post_id)
-                user.put()
-            else:
-                post.like.append(username)
-                post.put()
-                message = "like +1"
-                user.like.append(post_id)
-                user.put()
-        self.render('permalink.html', post = post, username = username, is_author = is_author, message = message)
 
-class DeletePost(Handler):
-    def get(self, post_id):
-        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-        post = db.get(key)
-        if post:
+            p = Comment(parent=key, username=username, content=comment, parent_post_id=post_id)
+            p.put()
+            post.comment.append(p.key())
+            post.put()
+            message = 'comment posted'
+            self.render('permalink.html', post = post, username = username, is_author = is_author, message = message)
+
+
+        elif like_button:
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
+
+            if not post:
+                self.error(404)
+                return
+
+            is_author = False
             username = self.cur_username()
+            message = ''
+            # an author cannot like his own post
             if post.username == username:
-                post.delete()
+                is_author = True
+                message = 'This is your post.'
+            else:
+                user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
+                user = user_query.get()
+                # an user cannot like a post more than once.
+                if username in post.like:
+                    post.like.remove(username)
+                    post.put()
+                    message = 'unliked'
+                    user.like.remove(post_id)
+                    user.put()
+                else:
+                    post.like.append(username)
+                    post.put()
+                    message = "like +1"
+                    user.like.append(post_id)
+                    user.put()
+            self.render('permalink.html', post = post, username = username, is_author = is_author, message = message)
+
+class DeleteBlog(Handler):
+    def get(self, post_id):
+        post_key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        blog = db.get(post_key)
+        if blog:
+            username = self.cur_username()
+            if blog.username == username:
+                # delete all comments entries of this blog
+                for comment_key in blog.comment:
+                    comment = db.get(comment_key)
+                    if comment:
+                        comment.delete()
+            blog.delete()
+        # wait for database update
+        time.sleep(0.5)
+        self.redirect('/welcome')
+
+class DeleteComment(Handler):
+    def get(self, post_id, comment_id):
+        post_key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        blog = db.get(post_key)
+        comment_key = db.Key.from_path('Comment', int(comment_id), parent=post_key)
+        comment = db.get(comment_key)
+        if comment and blog:
+            username = self.cur_username()
+            if comment.username == username:
+                blog.comment.remove(comment_key)
+                comment.delete()
+                blog.put()
         # wait for database update
         time.sleep(0.5)
         self.redirect('/welcome')
@@ -327,7 +402,7 @@ class EditPost(Handler):
                 self.redirect('/blog/' + post_id)
             else:
                 error = 'subject and content cannot be empty!'
-                self.render('newpost.html', subject=subject, content=content, error=error)
+                self.render('editpost.html', post_type = 'Edit Post', subject=subject, content=content, error=error)
 
 class LikedPost(Handler):
     def get(self, username):
@@ -342,6 +417,29 @@ class LikedPost(Handler):
             posts.append(post)
         self.render('likedpost.html', username = username, posts = posts)
 
+class EditComment(Handler):
+    def get(self, post_id, comment_id):
+        post_key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        blog = db.get(post_key)
+        comment_key = db.Key.from_path('Comment', int(comment_id), parent=post_key)
+        comment = db.get(comment_key)
+        if comment.username == self.cur_username():
+            self.render('editcomment.html', comment = comment.content)
+        else:
+            self.redirect('/blog/'+post_id)
+
+    def post(self, post_id, comment_id):
+        new_comment = self.request.get('comment')
+        post_key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        blog = db.get(post_key)
+        comment_key = db.Key.from_path('Comment', int(comment_id), parent=post_key)
+        comment = db.get(comment_key)
+        if comment.username == self.cur_username():
+            comment.content = new_comment
+            comment.put()
+        self.redirect('/blog/'+post_id)
+
+
 app = webapp2.WSGIApplication([('/', Signup),
                                ('/signup', Signup),
                                ('/welcome', Welcome),
@@ -351,4 +449,6 @@ app = webapp2.WSGIApplication([('/', Signup),
                                ('/editpost/([0-9]+)', EditPost),
                                ('/blog/([0-9]+)', PostPage),
                                ('/liked/(.*)', LikedPost),
-                               ('/deletepost/([0-9]+)', DeletePost)], debug=True)
+                               ('/deletecomment/([0-9]+)/([0-9]+)', DeleteComment),
+                               ('/deletepost/([0-9]+)', DeleteBlog),
+                               ('/editcomment/([0-9]+)/([0-9]+)', EditComment)], debug=True)

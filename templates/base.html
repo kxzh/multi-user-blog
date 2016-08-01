@@ -5,6 +5,30 @@
         <title>Blog</title>
     </head>
 
+    <style>
+    .comment {
+        font-size: 70%;
+        margin-left:50px;
+    }
+    #outer {
+        margin: 0 auto; /*center*/
+        width:200px;
+        background-color:red; /*just to display the example*/
+    }
+
+    #inner {
+        /*move the whole container 50px to the left side*/
+        margin-left:-50px;
+        margin-right:50px;
+        /*or move the whole container 50px to the right side*/
+        /*
+        margin-left:50px;
+        margin-right:-50px;
+        */
+    }
+</style>
+
+
     <body>
         <h1>Blog</h1>
         <p>log in: {{username}}</p>

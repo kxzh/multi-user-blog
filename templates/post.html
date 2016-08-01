@@ -11,8 +11,13 @@
         </div>
 
         <div class='post-date'>
-            <p>Date</p>
-            {{p.created.strftime("%m-%d-%Y")}}
+            <p>Created</p>
+            {{p.created.strftime("%c")}}
+        </div>
+
+        <div class='post-date'>
+            <p>Last Modified</p>
+            {{p.last_modified.strftime("%c")}}
         </div>
 
         <div class='post-content'>
@@ -22,17 +27,35 @@
         <hr />
         <div class='post-likes'>
             <p>liked by {{ p.like | count }} people</p>
-            {% set i = 0 %}
             {% for pp_like in p.like %}
-                {% set i = i + 1 %}
                 <p>
                     {{pp_like}}
                 </p>
             {% endfor %}
         </div>
-        <hr />
 
+        <br />
+        <a href= {{ '/blog/' + p.key().id()|string}}  class="view"> View </a>
+        <br />
+        {% if username == p.username %}
+            <a href= {{ '/deletepost/' + p.key().id()|string}}  class="delete"> Delete </a>
+            <br />
+            <a href= {{ '/editpost/' + p.key().id()|string}}  class="edit"> Edit </a>
+        {% endif %}
+        <br />
 
+        <form method="post">
+            <label>
+                <input type="hidden" value="{{p.key().id()|string}}" name="post_id" />
+                <input type="submit" name="like_button" value="like">
+                <div class="like_message">{{message}}</div>
+            </label>
+        </form>
+
+        <div class='post-comments'>
+            <p>comments: {{ p.comment | count }}</p>
+            {{ comment_block | safe }}
+        </div>
 
     </div>
 
