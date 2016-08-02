@@ -24,7 +24,15 @@
                     <h1>Multi User Blog</h1>
                 </section>
                 <section class="welcome col-md-4 text-right">
-                    <p >Welcome: {{username}}</p>
+                    {% if username %}
+                        <p >Welcome: {{username}}</p>
+                        <br />
+                        <a href="/logout" class="logout glyphicon glyphicon-log-out"> Logout </a>
+                    {% else %}
+                        <a href="/login" class="logout glyphicon glyphicon-log-in"> Login </a>
+                        <br />
+                        <a href="/signup" class="logout glyphicon glyphicon-ok"> Sign up </a>
+                    {% endif %}
                 </section>
             </section>
             <br />
@@ -36,10 +44,12 @@
                     <a href="/welcome" class="main-title glyphicon glyphicon-home"> Main </a>
                 </section>
                 <section class="col-md-3">
-                    <a href="/liked/{{username}}" class="header-button glyphicon glyphicon-glass"> My liked posts </a>
+                    {% if username %}
+                        <a href="/liked/{{username}}" class="header-button glyphicon glyphicon-glass"> My liked posts </a>
+                    {% endif %}
                 </section>
                 <section class="col-md-3">
-                    <a href="/logout" class="logout glyphicon glyphicon-log-out"> Logout </a>
+
                 </section>
             </section>
 

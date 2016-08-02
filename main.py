@@ -16,7 +16,16 @@ jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
 _like_message = "like +1"
 _unlike_message = 'unliked'
 _like_own_message = 'This is your post.'
-_no_permission_message = 'Sorry you are not the author of this post.'
+_no_permission_message = 'Sorry. You are not the author of this post.'
+_login_message = 'Please login.'
+_comment_success_message = 'Comment posted'
+
+# These patterns are from Udacity course
+_username_pattern = "^[a-zA-Z0-9_-]{3,20}$"
+_password_pattern = "^.{3,20}$"
+# email varification is simplified version, not to be used for production
+_email_pattern = "^[\S]+@[\S]+.[\S]+$"
+
 
 def make_salt():
     return ''.join(random.choice(string.letters) for x in xrange(5))
@@ -34,27 +43,10 @@ def render_str(template, **params):
     t = jinja_env.get_template(template)
     return t.render(params)
 
-# These patterns are from Udacity course
-_username_pattern = "^[a-zA-Z0-9_-]{3,20}$"
-_password_pattern = "^.{3,20}$"
-# email varification is simplified version, not to be used for production
-_email_pattern = "^[\S]+@[\S]+.[\S]+$"
 
 USER_RE = re.compile(_username_pattern)
 def valid_username(username):
     return username and USER_RE.match(username)
-
-def username_exist(username):
-    existUser = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
-    return existUser.count() != 0
-
-def login_varify(username, password):
-    existUser = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
-
-    if existUser.count():
-        if valid_pw(username, password, existUser.get().password):
-            return True
-    return False
 
 PASS_RE = re.compile(_password_pattern)
 def valid_password(password):
@@ -63,6 +55,23 @@ def valid_password(password):
 EMAIL_RE = re.compile(_email_pattern)
 def valid_email(email):
     return email or EMAIL_RE.match(email)
+
+
+def username_exist(username):
+    if username:
+        user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
+        user = user_query.get()
+        if user:
+            return True
+    return False
+
+def login_varify(username, password):
+    existUser = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
+    if existUser.count():
+        if valid_pw(username, password, existUser.get().password):
+            return True
+    return False
+
 
 def hash_str(s):
     return hashlib.md5(s).hexdigest()
@@ -103,7 +112,6 @@ class Post(db.Model):
             comment_holder = db.get(comment_key)
             if comment_holder:
                 comment_block += comment_holder.render()
-
         return render_str('post.html', p = self, comment_block = comment_block)
 
 class Comment(Post):
@@ -136,11 +144,8 @@ class Handler(webapp2.RequestHandler):
 
 class Signup(Handler):
     def get(self):
-        username = self.request.cookies.get('username')
-        if valid_username(username):
-            self.redirect('/welcome')
-        else:
-            self.render("signup.html")
+        self.response.delete_cookie('username')
+        self.render("signup.html")
 
     def post(self):
         have_error = False
@@ -186,16 +191,8 @@ class Signup(Handler):
 class Welcome(Handler):
     def get(self, message=''):
         username = self.cur_username()
-        if username:
-            user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
-            user = user_query.get()
-            if user:
-                posts = db.GqlQuery("SELECT * FROM Post order by created desc limit 10")
-                self.render('front.html', posts = posts, username = username, message = message)
-                return
-
-        self.response.delete_cookie('username')
-        self.redirect('/signup')
+        posts = db.GqlQuery("SELECT * FROM Post order by created desc limit 10")
+        self.render('front.html', posts = posts, username = username, message = message)
 
     def post(self, message=''):
         # when user like/unlike a post on the front page,
@@ -206,10 +203,18 @@ class Welcome(Handler):
         if not post:
             self.error(404)
             return
+
         username = self.cur_username()
+        # visitors not log in can view blog
+        if not username_exist(username):
+            message = _login_message
+            self.redirect('/welcome/' + message)
+            return
+
         user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
         user = user_query.get()
-        message = ''
+
+        # log in user can like a post
         if username in post.like:
             # reclick will unliked
             post.like.remove(username)
@@ -230,7 +235,6 @@ class Welcome(Handler):
         # wait for database update
         time.sleep(0.5)
         self.redirect('/welcome/' + message)
-
 
 class Login(Handler):
     def get(self):
@@ -254,7 +258,12 @@ class Logout(Handler):
 class NewPost(Handler):
     def get(self):
         username = self.cur_username()
-        self.render('editpost.html', username = username)
+        if username_exist(username):
+            self.render('editpost.html', username = username)
+        else:
+            message = _login_message
+            self.redirect('/welcome/' + message)
+            return
 
     def post(self):
         username = self.cur_username()
@@ -292,6 +301,12 @@ class PostPage(Handler):
         self.render('permalink.html', post = post, is_author = is_author, username = username)
 
     def post(self, post_id):
+        username = self.cur_username()
+        if not username_exist(username):
+            message = _login_message
+            self.redirect('/welcome/' + message)
+            return
+
         like_button = self.request.get('like_button')
         comment_button = self.request.get('comment_button')
 
@@ -318,9 +333,8 @@ class PostPage(Handler):
             p.put()
             post.comment.append(p.key())
             post.put()
-            message = 'Comment posted'
+            message = _comment_success_message
             self.render('permalink.html', post = post, username = username, is_author = is_author, message = message)
-
 
         elif like_button:
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
@@ -405,7 +419,7 @@ class EditPost(Handler):
             self.error(404)
             return
         username = self.cur_username()
-        if post.username == username:
+        if post.username == username and username_exist(username):
             self.render('editpost.html', subject=post.subject, content=post.content)
         else:
             message = _no_permission_message
@@ -437,14 +451,18 @@ class LikedPost(Handler):
         username = self.cur_username()
         user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
         user = user_query.get()
-        like_id_list = user.like
-        posts = []
-        for id in like_id_list:
-            key = db.Key.from_path('Post', int(id), parent=blog_key())
-            post = db.get(key)
-            if post:
-                posts.append(post)
-        self.render('likedpost.html', username = username, posts = posts)
+        if username and user:
+            like_id_list = user.like
+            posts = []
+            for id in like_id_list:
+                key = db.Key.from_path('Post', int(id), parent=blog_key())
+                post = db.get(key)
+                if post:
+                    posts.append(post)
+            self.render('likedpost.html', username = username, posts = posts)
+        else:
+            message = _login_message
+            self.redirect('/welcome/'+message)
 
 class EditComment(Handler):
     def get(self, post_id, comment_id):
