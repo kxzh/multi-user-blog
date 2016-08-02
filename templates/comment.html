@@ -1,0 +1,25 @@
+<div class='comment row'>
+        <div class='comment-info col-xs-12 col-md-4 ' >
+            <div class='post-author'>
+                <p>Author: {{p.username}}</p>
+            </div>
+
+            <div class='post-date'>
+                <p>Post Date: {{p.created.strftime("%c")}}</p>
+            </div>
+
+            <div class='post-date'>
+                <p>Last Modified: {{p.last_modified.strftime("%c")}}</p>
+            </div>
+
+            <div>
+                <a href= {{ '/deletecomment/'+ p.parent_post_id +'/' + p.key().id()|string}}  class="delete"> Delete </a>
+                <a href= {{ '/editcomment/' + p.parent_post_id +'/' + p.key().id()|string}}  class="edit"> Edit </a>
+            </div>
+        </div>
+
+        <div class='comment-content col-xs-12 col-md-8'>
+            <p>Comment:</p>
+            {{p._render_text | safe}}
+        </div>
+</div>

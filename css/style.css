@@ -1,0 +1,99 @@
+h2, h3 {
+  color: #808080;
+}
+
+html {
+  margin: 20px;
+  padding: 0;
+  height: 100%;
+}
+
+textarea, input {
+  font-size: 15px;
+  font-weight: lighter;
+  border-style: solid;
+  border-color: #3CB371;
+  border-width: 1px;
+  margin: 1px;
+}
+
+.row {
+  padding: 1px;
+}
+
+.post-title {
+  text-align: center;
+  color: #808080;
+}
+
+.comment-info {
+  border-style: solid;
+  border-color: #DCDCDC;
+  border-width: 1px;
+  font-size: 80%;
+  padding: 5px;
+}
+
+.post-info {
+  border-style: solid;
+  border-color: #DCDCDC;
+  border-width: 1px;
+  font-size: 80%;
+  padding: 5px;
+}
+
+.post-content {
+  border-style: solid;
+  border-color: #DCDCDC;
+  border-width: 1px;
+  padding: 5px;
+  overflow: scroll;
+  font-family: 'Lora', serif;
+  font-size: medium;
+  color: #4d4d4d;
+}
+
+.comment-content {
+  border-style: solid;
+  border-color: #DCDCDC;
+  border-width: 1px;
+  background-color: #ecf9f2;
+  padding: 5px;
+  height: 102px;
+  overflow: scroll;
+}
+
+.enter-button {
+  background-color: #bfee91;
+}
+
+.view-button {
+  background-color: #b3d9ff;
+}
+
+.like-button {
+  background-color: #E6E6FA;
+}
+
+.welcome {
+  color: #3CB371;
+}
+
+.warning {
+  color: #CD853F;
+  font-weight: bold;
+}
+
+hr.base {
+    border-bottom: 1px dashed #ccc;
+    background: #3CB371;
+}
+
+hr.posts {
+    border-bottom: 1px dashed #ccc;
+    background: #999;
+}
+
+.heart {
+  color: #DC143C;
+}

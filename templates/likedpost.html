@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    {% if posts|length == 0 %}
+        <p>
+            empty
+        </p>
+    {% endif %}
+
+    {% for p in posts %}
+        {{ p.render() | safe }}
+    {% endfor %}
+
+{% endblock %}
