@@ -2,15 +2,21 @@
 
 {% block content %}
 
-    <hr />
+
+
     {% if posts.count() == 0 %}
-        <p>
-            Be the first to post!
-        </p>
+    <section class="row">
+        <div class="col-md-12">
+            <p>
+                Be the first to post!
+            </p>
+        </div>
+    </section>
+
     {% else %}
         {% for p in posts %}
             {{ p.render() | safe }}
-            <hr />
+            <hr class='posts'/>
         {% endfor %}
     {% endif %}
 {% endblock %}

@@ -1,62 +1,91 @@
 <div class='post'>
-    <div class='post-heading'>
-        <div class='post-title'>
-            <p>Title</p>
-            {{p.subject}}
+    <section class='post-heading row row-eq-height'>
+        <section class='post-title text-capitalize col-md-8'>
+            <h3>{{p.subject}}</h3>
+        </section>
+
+        <section class='post-info col-md-4'>
+            <div class='post-author'>
+                <p>Author: {{p.username}}</p>
+            </div>
+
+            <div class='post-date'>
+                <p>Post Date: {{p.created.strftime("%c")}}</p>
+            </div>
+
+            <div class='post-date'>
+                <p>Last Modified: {{p.last_modified.strftime("%c")}}</p>
+            </div>
+        </section>
+    </section>
+
+
+
+    <section class='row'>
+        <div class='post-content col-md-12'>
+            <p>{{p._render_text | safe}}</p>
+        </div>
+    </section>
+
+    <section class='row'>
+        <div class='col-md-12'>
+            <hr />
+        </div>
+    </section>
+
+
+    <section class='row row-eq-height'>
+        <div class='like-post col-md-4 text-left'>
+            <form method="post">
+                <label>
+                    <input type="hidden" value="{{p.key().id()|string}}" name="post_id" />
+                    <button type="submit" class='btn btn-default' name="like_button" value=" Like">
+                        <span class="glyphicon glyphicon-heart heart"></span>
+                    </button>
+                    <div class="warning">{{message}}</div>
+                </label>
+            </form>
+
         </div>
 
-        <div class='post-author'>
-            <p>Author</p>
-            {{p.username}}
+        <div class="col-md-4 text-left">
+            <a class="btn btn-default btn-xs glyphicon glyphicon-zoom-in" href= {{ '/blog/' + p.key().id()|string}}  class="view"> View </a>
         </div>
 
-        <div class='post-date'>
-            <p>Created</p>
-            {{p.created.strftime("%c")}}
+        <div class='col-md-8 text-right'>
+            <a class="btn btn-default btn-xs glyphicon glyphicon-trash" href= {{ '/deletepost/' + p.key().id()|string}}  class="delete"> Delete </a>
+            <a class="btn btn-default btn-xs glyphicon glyphicon-pencil" href= {{ '/editpost/' + p.key().id()|string}}  class="edit"> Edit </a>
         </div>
+    </section>
 
-        <div class='post-date'>
-            <p>Last Modified</p>
-            {{p.last_modified.strftime("%c")}}
-        </div>
 
-        <div class='post-content'>
-            <p>Content</p>
-            {{p._render_text | safe}}
-        </div>
-        <hr />
+
+
+    <section class='row'>
         <div class='post-likes'>
-            <p>liked by {{ p.like | count }} people</p>
-            {% for pp_like in p.like %}
-                <p>
+            <div class='col-md-2'>
+                <p>{{ p.like | count }} people liked</p>
+            </div>
+            <div class='col-md-10'>
+                {% for pp_like in p.like[0:5] %}
                     {{pp_like}}
-                </p>
-            {% endfor %}
+                {% endfor %}
+            </div>
+
+
+        </div>
+    </section>
+
+
+
+    <section class='row'>
+        <div class='post-comments col-md-12'>
+            <p>{{ p.comment | count }} comments</p>
         </div>
 
-        <br />
-        <a href= {{ '/blog/' + p.key().id()|string}}  class="view"> View </a>
-        <br />
-        {% if username == p.username %}
-            <a href= {{ '/deletepost/' + p.key().id()|string}}  class="delete"> Delete </a>
-            <br />
-            <a href= {{ '/editpost/' + p.key().id()|string}}  class="edit"> Edit </a>
-        {% endif %}
-        <br />
+    </section>
 
-        <form method="post">
-            <label>
-                <input type="hidden" value="{{p.key().id()|string}}" name="post_id" />
-                <input type="submit" name="like_button" value="like">
-                <div class="like_message">{{message}}</div>
-            </label>
-        </form>
-
-        <div class='post-comments'>
-            <p>comments: {{ p.comment | count }}</p>
+    <section>
             {{ comment_block | safe }}
-        </div>
-
-    </div>
-
+    </section>
 </div>

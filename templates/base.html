@@ -2,48 +2,75 @@
 
 <html>
     <head>
-        <title>Blog</title>
+        <title>Multi User Blog</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="Full Stack Web Developer Porfolio">
+
+        <!-- <link rel="stylesheet" href='https://fonts.googleapis.com/css?family=Lato'> -->
+        <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+        <link rel="stylesheet" href="/css/style.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
     </head>
 
-    <style>
-    .comment {
-        font-size: 70%;
-        margin-left:50px;
-    }
-    #outer {
-        margin: 0 auto; /*center*/
-        width:200px;
-        background-color:red; /*just to display the example*/
-    }
 
-    #inner {
-        /*move the whole container 50px to the left side*/
-        margin-left:-50px;
-        margin-right:50px;
-        /*or move the whole container 50px to the right side*/
-        /*
-        margin-left:50px;
-        margin-right:-50px;
-        */
-    }
-</style>
+<body>
+    <div class="container">
+
+        <header>
+            <section class="row row-eq-height">
+                <section class="col-md-8 text-left">
+                    <h1>Multi User Blog</h1>
+                </section>
+                <section class="welcome col-md-4 text-right">
+                    <p >Welcome: {{username}}</p>
+                </section>
+            </section>
+            <br />
+            <section class="row row-eq-height text-center">
+                <section class="col-md-3">
+                    <a href="/newpost" class="main-title glyphicon glyphicon-plus"> New Post </a>
+                </section>
+                <section class="col-md-3">
+                    <a href="/welcome" class="main-title glyphicon glyphicon-home"> Main </a>
+                </section>
+                <section class="col-md-3">
+                    <a href="/liked/{{username}}" class="header-button glyphicon glyphicon-glass"> My liked posts </a>
+                </section>
+                <section class="col-md-3">
+                    <a href="/logout" class="logout glyphicon glyphicon-log-out"> Logout </a>
+                </section>
+            </section>
+
+            <div class="row">
+                <hr class='base' />
+            </div>
+
+        </header>
+
+        <div >
+            <p class="warning">
+                {{message}}
+            </p>
+        </div>
 
 
-    <body>
-        <h1>Blog</h1>
-        <p>log in: {{username}}</p>
-        <a href="/liked/{{username}}" class="header-button"> My liked posts </a>
-        <hr>
-        <a href="/logout" class="logout"> Logout </a>
-        <br>
-        <div id="content">
+        <section id="content">
             {% block content %}
             {% endblock %}
+        </section>
+
+
+        <div class="row">
+        <footer class="col-md-12">
+            <hr class='base' />
+            <p> Owner: Kexin Zhang </p>
+        </footer>
         </div>
-        <br /><br />
-        <a href="/newpost" class="main-title"> Add New Post </a>
-        <br>
-        <a href="/welcome" class="main-title"> Blog Main Page </a>
-    </body>
+
+    </div>
+
+</body>
 
 </html>

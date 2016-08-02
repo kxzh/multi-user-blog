@@ -1,24 +1,21 @@
 {% extends 'base.html' %}
 
 {% block content %}
+
     {{post.render() | safe}}
-    <label>
-        <!-- <input type="submit" name="like_button" value="like"> -->
-        <div class="like_message">{{message}}</div>
-    </label>
 
-    {% if is_author: %}
-        <a href= {{'/deletepost/' + post.key().id()|string}}  class="delete"> Delete </a>
-        <br />
-        <a href= {{'/editpost/' + post.key().id()|string}}  class="edit"> Edit </a>
-    {% endif %}
+    <section class='row'>
+        <div class='col-md-12'>
+            <form method="post">
+                <label>
+                    <div>Comment</div>
+                    <textarea rows="5" cols="80" name="comment">{{comment}}</textarea>
+                    <br />
+                    <input class="enter-button btn btn-default btn-xs" type="submit" name="comment_button">
+                </label>
+            </form>
+        </div>
+    </section>
 
-    <form method="post">
-        <label>
-            <div>Comment</div>
-            <textarea name="comment">{{comment}}</textarea>
-            <br />
-            <input type="submit" name="comment_button">
-        </label>
-    </form>
+
 {% endblock %}

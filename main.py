@@ -13,6 +13,11 @@ template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                autoescape = True) # prevent injection, hecking
 
+_like_message = "like +1"
+_unlike_message = 'unliked'
+_like_own_message = 'This is your post.'
+_no_permission_message = 'Sorry you are not the author of this post.'
+
 def make_salt():
     return ''.join(random.choice(string.letters) for x in xrange(5))
 
@@ -98,6 +103,7 @@ class Post(db.Model):
             comment_holder = db.get(comment_key)
             if comment_holder:
                 comment_block += comment_holder.render()
+
         return render_str('post.html', p = self, comment_block = comment_block)
 
 class Comment(Post):
@@ -178,46 +184,52 @@ class Signup(Handler):
             self.redirect('/welcome')
 
 class Welcome(Handler):
-    def get(self):
+    def get(self, message=''):
         username = self.cur_username()
         if username:
             user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
             user = user_query.get()
             if user:
                 posts = db.GqlQuery("SELECT * FROM Post order by created desc limit 10")
-                self.render('front.html', posts = posts, username = username)
+                self.render('front.html', posts = posts, username = username, message = message)
                 return
 
         self.response.delete_cookie('username')
         self.redirect('/signup')
 
-    def post(self):
+    def post(self, message=''):
+        # when user like/unlike a post on the front page,
+        # a post_id hidden fild is auto filled with the id of that post
         post_id = self.request.get('post_id')
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
-        #self.redirect('/blog/' + post_id)
         if not post:
             self.error(404)
             return
-
         username = self.cur_username()
         user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
         user = user_query.get()
+        message = ''
         if username in post.like:
             # reclick will unliked
             post.like.remove(username)
             post.put()
             user.like.remove(post_id)
             user.put()
-        # an author cannot like his own post
+            message = _unlike_message
         elif post.username != username:
             post.like.append(username)
             post.put()
             user.like.append(post_id)
             user.put()
+            message = _like_message
+        # an author cannot like his own post
+        elif post.username == username:
+            message = _like_own_message
+
         # wait for database update
         time.sleep(0.5)
-        self.redirect('/welcome')
+        self.redirect('/welcome/' + message)
 
 
 class Login(Handler):
@@ -306,7 +318,7 @@ class PostPage(Handler):
             p.put()
             post.comment.append(p.key())
             post.put()
-            message = 'comment posted'
+            message = 'Comment posted'
             self.render('permalink.html', post = post, username = username, is_author = is_author, message = message)
 
 
@@ -324,7 +336,7 @@ class PostPage(Handler):
             # an author cannot like his own post
             if post.username == username:
                 is_author = True
-                message = 'This is your post.'
+                message = _like_own_message
             else:
                 user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
                 user = user_query.get()
@@ -332,13 +344,13 @@ class PostPage(Handler):
                 if username in post.like:
                     post.like.remove(username)
                     post.put()
-                    message = 'unliked'
+                    message = _unlike_message
                     user.like.remove(post_id)
                     user.put()
                 else:
                     post.like.append(username)
                     post.put()
-                    message = "like +1"
+                    message = _like_message
                     user.like.append(post_id)
                     user.put()
             self.render('permalink.html', post = post, username = username, is_author = is_author, message = message)
@@ -355,10 +367,14 @@ class DeleteBlog(Handler):
                     comment = db.get(comment_key)
                     if comment:
                         comment.delete()
-            blog.delete()
-        # wait for database update
-        time.sleep(0.5)
-        self.redirect('/welcome')
+                        blog.delete()
+                        # wait for database update
+                        time.sleep(0.5)
+                        self.redirect('/welcome')
+            else:
+                # not the author of this blog
+                message = _no_permission_message
+                self.redirect('/welcome/'+message)
 
 class DeleteComment(Handler):
     def get(self, post_id, comment_id):
@@ -372,19 +388,29 @@ class DeleteComment(Handler):
                 blog.comment.remove(comment_key)
                 comment.delete()
                 blog.put()
-        # wait for database update
-        time.sleep(0.5)
-        self.redirect('/welcome')
+                # wait for database update
+                time.sleep(0.5)
+                self.redirect('/blog/'+post_id)
+            else:
+                message = _no_permission_message
+                self.redirect('/welcome/'+message)
+        else:
+            self.redirect('/blog/'+post_id)
+
 
 class EditPost(Handler):
     def get(self, post_id):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
+        if not post:
+            self.error(404)
+            return
         username = self.cur_username()
         if post.username == username:
             self.render('editpost.html', subject=post.subject, content=post.content)
         else:
-            self.redirect('/welcome')
+            message = _no_permission_message
+            self.redirect('/welcome/'+message)
 
     def post(self, post_id):
         username = self.cur_username()
@@ -396,6 +422,9 @@ class EditPost(Handler):
             if subject and content:
                 key = db.Key.from_path('Post', int(post_id), parent=blog_key())
                 post = db.get(key)
+                if not post:
+                    self.error(404)
+                    return
                 post.subject = subject
                 post.content = content
                 post.put()
@@ -414,7 +443,8 @@ class LikedPost(Handler):
         for id in like_id_list:
             key = db.Key.from_path('Post', int(id), parent=blog_key())
             post = db.get(key)
-            posts.append(post)
+            if post:
+                posts.append(post)
         self.render('likedpost.html', username = username, posts = posts)
 
 class EditComment(Handler):
@@ -426,7 +456,8 @@ class EditComment(Handler):
         if comment.username == self.cur_username():
             self.render('editcomment.html', comment = comment.content)
         else:
-            self.redirect('/blog/'+post_id)
+            message = _no_permission_message
+            self.redirect('/welcome/'+message)
 
     def post(self, post_id, comment_id):
         new_comment = self.request.get('comment')
@@ -443,6 +474,7 @@ class EditComment(Handler):
 app = webapp2.WSGIApplication([('/', Signup),
                                ('/signup', Signup),
                                ('/welcome', Welcome),
+                               ('/welcome/(.*)', Welcome),
                                ('/login', Login),
                                ('/logout', Logout),
                                ('/newpost', NewPost),
