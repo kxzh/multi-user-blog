@@ -9,6 +9,8 @@ A blog web application using Google App Engine
 * Like and unlike blog posts
 * View liked posts archive
 * Comment on blog posts. Edit and delete comments.
+* Mobile friendly
+* Minimal design
 
 ## Demo: 
 https://blog-practice.appspot.com
