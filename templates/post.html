@@ -35,24 +35,24 @@
 
 
     <section class='row row-eq-height'>
-        <div class='like-post col-md-4 text-left'>
-            <form method="post">
-                <label>
-                    <input type="hidden" value="{{p.key().id()|string}}" name="post_id" />
-                    <button type="submit" class='btn btn-default' name="like_button" value=" Like">
-                        <span class="glyphicon glyphicon-heart heart"></span>
-                    </button>
-                    <div class="warning">{{message}}</div>
-                </label>
-            </form>
-
+        <div class='like-post col-md-8 text-center'>
+            <div class="col-md-2 text-right">
+                <form method="post">
+                    <label>
+                        <input type="hidden" value="{{p.key().id()|string}}" name="post_id" />
+                        <button type="submit" class='btn btn-default' name="like_button" value=" Like">
+                            <span class="glyphicon glyphicon-heart heart"></span>
+                        </button>
+                    </label>
+                </form>
+            </div>
+            <div class="col-md-6 text-left">
+                <a class="btn btn-default btn-xs glyphicon glyphicon-th-list" href= {{ '/blog/' + p.key().id()|string}}  class="view"> Comment </a>
+                <a class="btn btn-default btn-xs glyphicon glyphicon-zoom-in" href= {{ '/blog/' + p.key().id()|string}}  class="view"> View </a>
+            </div>
         </div>
 
-        <div class="col-md-4 text-left">
-            <a class="btn btn-default btn-xs glyphicon glyphicon-zoom-in" href= {{ '/blog/' + p.key().id()|string}}  class="view"> View </a>
-        </div>
-
-        <div class='col-md-8 text-right'>
+        <div class='col-md-4 text-right'>
             <a class="btn btn-default btn-xs glyphicon glyphicon-trash" href= {{ '/deletepost/' + p.key().id()|string}}  class="delete"> Delete </a>
             <a class="btn btn-default btn-xs glyphicon glyphicon-pencil" href= {{ '/editpost/' + p.key().id()|string}}  class="edit"> Edit </a>
         </div>
