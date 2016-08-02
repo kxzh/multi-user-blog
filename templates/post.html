@@ -1,10 +1,10 @@
 <div class='post'>
-    <section class='post-heading row row-eq-height'>
-        <section class='post-title text-capitalize col-md-8'>
+    <section class='post-heading row'>
+        <section class='post-title text-capitalize col-xs-12 col-md-8'>
             <h3>{{p.subject}}</h3>
         </section>
 
-        <section class='post-info col-md-4'>
+        <section class='post-info col-xs-12 col-md-4'>
             <div class='post-author'>
                 <p>Author: {{p.username}}</p>
             </div>
@@ -19,47 +19,39 @@
         </section>
     </section>
 
-
-
-    <section class='row'>
-        <div class='post-content col-md-12'>
+    <section class='row col-padding'>
+        <div class='post-content'>
             <p>{{p._render_text | safe}}</p>
         </div>
     </section>
 
+    <div >
+        <hr />
+    </div>
+
     <section class='row'>
-        <div class='col-md-12'>
-            <hr />
-        </div>
-    </section>
-
-
-    <section class='row row-eq-height'>
-        <div class='like-post col-md-8 text-center'>
-            <div class="col-md-2 text-right">
+        <div class='like-post col-xs-9 col-md-8'>
+            <div class="col-xs-1 col-md-2 text-left">
                 <form method="post">
                     <label>
                         <input type="hidden" value="{{p.key().id()|string}}" name="post_id" />
-                        <button type="submit" class='btn btn-default' name="like_button" value=" Like">
+                        <button type="submit" class='btn btn-default btn-xs' name="like_button" value=" Like">
                             <span class="glyphicon glyphicon-heart heart"></span>
                         </button>
                     </label>
                 </form>
             </div>
-            <div class="col-md-6 text-left">
+            <div class="col-xs-8 col-md-6 text-left">
                 <a class="btn btn-default btn-xs glyphicon glyphicon-th-list" href= {{ '/blog/' + p.key().id()|string}}  class="view"> Comment </a>
                 <a class="btn btn-default btn-xs glyphicon glyphicon-zoom-in" href= {{ '/blog/' + p.key().id()|string}}  class="view"> View </a>
             </div>
         </div>
 
-        <div class='col-md-4 text-right'>
+        <div class='col-xs-3 col-md-4 text-right'>
             <a class="btn btn-default btn-xs glyphicon glyphicon-trash" href= {{ '/deletepost/' + p.key().id()|string}}  class="delete"> Delete </a>
             <a class="btn btn-default btn-xs glyphicon glyphicon-pencil" href= {{ '/editpost/' + p.key().id()|string}}  class="edit"> Edit </a>
         </div>
     </section>
-
-
-
 
     <section class='row'>
         <div class='post-likes'>
@@ -74,13 +66,10 @@
         </div>
     </section>
 
-
-
     <section class='row'>
         <div class='post-comments col-md-12'>
             <p>{{ p.comment | count }} comments</p>
         </div>
-
     </section>
 
     <section>

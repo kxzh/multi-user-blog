@@ -19,14 +19,13 @@
     <div class="container">
 
         <header>
-            <section class="row row-eq-height">
-                <section class="col-md-8 text-left">
-                    <h1>Multi User Blog</h1>
+            <section class="row">
+                <section class="col-xs-12 col-md-8 text-left">
+                    <h2>Multi User Blog</h2>
                 </section>
-                <section class="welcome col-md-4 text-right">
+                <section class="welcome col-xs-12 col-md-4 text-right">
                     {% if username %}
                         <p >Welcome: {{username}}</p>
-                        <br />
                         <a href="/logout" class="logout glyphicon glyphicon-log-out"> Logout </a>
                     {% else %}
                         <a href="/login" class="logout glyphicon glyphicon-log-in"> Login </a>
@@ -36,28 +35,25 @@
                 </section>
             </section>
             <br />
-            <section class="row row-eq-height text-center">
-                <section class="col-md-3">
+            <section class="row text-center">
+                <section class="col-xs-4">
                     <a href="/newpost" class="main-title glyphicon glyphicon-plus"> New Post </a>
                 </section>
-                <section class="col-md-3">
+                <section class="col-xs-4">
                     <a href="/welcome" class="main-title glyphicon glyphicon-home"> Main </a>
                 </section>
-                <section class="col-md-3">
+                <section class="col-xs-4">
                     {% if username %}
                         <a href="/liked/{{username}}" class="header-button glyphicon glyphicon-glass"> My liked posts </a>
                     {% endif %}
                 </section>
-                <section class="col-md-3">
-
-                </section>
             </section>
-
-            <div class="row">
-                <hr class='base' />
-            </div>
-
         </header>
+
+
+        <div>
+            <hr class='base' />
+        </div>
 
         <div >
             <p class="warning">
@@ -65,19 +61,19 @@
             </p>
         </div>
 
-
         <section id="content">
             {% block content %}
             {% endblock %}
         </section>
 
-
-        <div class="row">
-        <footer class="col-md-12">
+        <div>
             <hr class='base' />
-            <p> Owner: Kexin Zhang </p>
-        </footer>
         </div>
+
+
+        <footer>
+            <p> Site Owner: Kexin Zhang </p>
+        </footer>
 
     </div>
 

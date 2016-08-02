@@ -19,6 +19,8 @@ _like_own_message = 'This is your post.'
 _no_permission_message = 'Sorry. You are not the author of this post.'
 _login_message = 'Please login.'
 _comment_success_message = 'Comment posted'
+_deleted_message = 'Deleted'
+_error_message = 'error'
 
 # These patterns are from Udacity course
 _username_pattern = "^[a-zA-Z0-9_-]{3,20}$"
@@ -108,10 +110,16 @@ class Post(db.Model):
         # replace all new line char with line break html to render correctly
         self._render_text = self.content.replace('\n', '<br>')
         comment_block = ''
+        # For now, only support rendering maximum of 10 comments (earliest)
+        # TODO: Rendering more comments
+        i = 0
         for comment_key in self.comment:
+            if i > 9:
+                break
             comment_holder = db.get(comment_key)
             if comment_holder:
                 comment_block += comment_holder.render()
+                i += 1
         return render_str('post.html', p = self, comment_block = comment_block)
 
 class Comment(Post):
@@ -141,6 +149,15 @@ class Handler(webapp2.RequestHandler):
                 return username_cookie.split('|')[0]
         else:
             return None
+    # Varify user identity with both local cookie and server database
+    def isLogin(self):
+        username = self.cur_username()
+        if username:
+            user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
+            user = user_query.get()
+            if user:
+                return True
+        return False
 
 class Signup(Handler):
     def get(self):
@@ -192,9 +209,17 @@ class Welcome(Handler):
     def get(self, message=''):
         username = self.cur_username()
         posts = db.GqlQuery("SELECT * FROM Post order by created desc limit 10")
-        self.render('front.html', posts = posts, username = username, message = message)
+        if self.isLogin():
+            self.render('front.html', posts = posts, username = username, message = message)
+        else:
+            self.render('front.html', posts = posts, message = message)
 
     def post(self, message=''):
+        # Visitor not signed in cannot like/comment/edit/delete a post/comment
+        if not self.isLogin():
+            message = _login_message
+            self.redirect('/welcome/' + message)
+            return
         # when user like/unlike a post on the front page,
         # a post_id hidden fild is auto filled with the id of that post
         post_id = self.request.get('post_id')
@@ -203,17 +228,9 @@ class Welcome(Handler):
         if not post:
             self.error(404)
             return
-
         username = self.cur_username()
-        # visitors not log in can view blog
-        if not username_exist(username):
-            message = _login_message
-            self.redirect('/welcome/' + message)
-            return
-
         user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
         user = user_query.get()
-
         # log in user can like a post
         if username in post.like:
             # reclick will unliked
@@ -238,6 +255,7 @@ class Welcome(Handler):
 
 class Login(Handler):
     def get(self):
+        self.response.delete_cookie('username')
         self.render('login.html')
 
     def post(self):
@@ -258,23 +276,23 @@ class Logout(Handler):
 class NewPost(Handler):
     def get(self):
         username = self.cur_username()
-        if username_exist(username):
-            self.render('editpost.html', username = username)
+        if self.isLogin():
+            self.render('editpost.html', username = username, post_type='New Post')
         else:
             message = _login_message
             self.redirect('/welcome/' + message)
             return
 
     def post(self):
-        username = self.cur_username()
-        user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
-        user = user_query.get()
-        if not username or not user:
-            self.render('login.html')
+        if not self.isLogin():
+            self.redirect('/login')
         else:
             subject = self.request.get('subject')
             content = self.request.get('content')
+            username = self.cur_username()
             if subject and content:
+                user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
+                user = user_query.get()
                 p = Post(parent=blog_key(), username=username, subject=subject, content=content, like=[])
                 p.put()
                 post_id = p.key().id()
@@ -283,17 +301,15 @@ class NewPost(Handler):
                 self.redirect('/blog/%s' % str(post_id))
             else:
                 error = 'subject and content cannot be empty!'
-                self.render('editpost.html', post_type = 'New Post', subject=subject, content=content, error=error)
+                self.render('editpost.html', post_type = 'New Post', subject=subject, content=content, error=error, username = username)
 
 class PostPage(Handler):
     def get(self, post_id):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
-
         if not post:
             self.error(404)
             return
-
         is_author = False
         username = self.cur_username()
         if post.username == username:
@@ -301,34 +317,26 @@ class PostPage(Handler):
         self.render('permalink.html', post = post, is_author = is_author, username = username)
 
     def post(self, post_id):
-        username = self.cur_username()
-        if not username_exist(username):
+        if not self.isLogin():
             message = _login_message
             self.redirect('/welcome/' + message)
             return
 
         like_button = self.request.get('like_button')
         comment_button = self.request.get('comment_button')
+        username = self.cur_username()
+        is_author = False
 
         if comment_button:
             comment = self.request.get('comment')
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
-
             if not post:
                 self.error(404)
                 return
-
-            is_author = False
-            username = self.cur_username()
-            message = ''
             # an author cannot like his own post
             if post.username == username:
                 is_author = True
-
-            user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
-            user = user_query.get()
-
             p = Comment(parent=key, username=username, content=comment, parent_post_id=post_id)
             p.put()
             post.comment.append(p.key())
@@ -339,14 +347,9 @@ class PostPage(Handler):
         elif like_button:
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
-
             if not post:
                 self.error(404)
                 return
-
-            is_author = False
-            username = self.cur_username()
-            message = ''
             # an author cannot like his own post
             if post.username == username:
                 is_author = True
@@ -371,9 +374,15 @@ class PostPage(Handler):
 
 class DeleteBlog(Handler):
     def get(self, post_id):
+        if not self.isLogin():
+            message = _login_message
+            self.redirect('/welcome/'+message)
+            return
+
         post_key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         blog = db.get(post_key)
         username = self.cur_username()
+
         if not blog:
             message = 'Blog does not exist'
             self.redirect('/welcome/'+message)
@@ -388,93 +397,124 @@ class DeleteBlog(Handler):
                     comment.delete()
             blog.delete()
             time.sleep(0.5) # wait for database update
-            self.redirect('/welcome')
+            message = _deleted_message
+            self.redirect('/welcome/'+message)
 
 class DeleteComment(Handler):
     def get(self, post_id, comment_id):
-        post_key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-        blog = db.get(post_key)
-        comment_key = db.Key.from_path('Comment', int(comment_id), parent=post_key)
-        comment = db.get(comment_key)
-        if comment and blog:
-            username = self.cur_username()
-            if comment.username == username:
-                blog.comment.remove(comment_key)
-                comment.delete()
-                blog.put()
-                # wait for database update
-                time.sleep(0.5)
-                self.redirect('/blog/'+post_id)
-            else:
-                message = _no_permission_message
-                self.redirect('/welcome/'+message)
+        if not self.isLogin():
+            message = _login_message
+            self.redirect('/welcome/'+message)
+            return
         else:
-            self.redirect('/blog/'+post_id)
+            post_key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            blog = db.get(post_key)
+            comment_key = db.Key.from_path('Comment', int(comment_id), parent=post_key)
+            comment = db.get(comment_key)
+            if comment and blog:
+                username = self.cur_username()
+                if comment.username == username:
+                    blog.comment.remove(comment_key)
+                    comment.delete()
+                    blog.put()
+                    # wait for database update
+                    time.sleep(0.5)
+                    self.redirect('/blog/'+post_id)
+                else:
+                    message = _no_permission_message
+                    self.redirect('/welcome/'+message)
+            else:
+                self.redirect('/blog/'+post_id)
 
 class EditPost(Handler):
     def get(self, post_id):
-        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-        post = db.get(key)
-        if not post:
-            self.error(404)
-            return
-        username = self.cur_username()
-        if post.username == username and username_exist(username):
-            self.render('editpost.html', subject=post.subject, content=post.content)
-        else:
-            message = _no_permission_message
+        if not self.isLogin():
+            message = _login_message
             self.redirect('/welcome/'+message)
+            return
+        else:
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
+            if not post:
+                self.error(404)
+                return
+            username = self.cur_username()
+            if post.username == username:
+                self.render('editpost.html', subject=post.subject, content=post.content, username = username)
+            else:
+                message = _no_permission_message
+                self.redirect('/welcome/'+message)
 
     def post(self, post_id):
-        username = self.cur_username()
-        if not username:
-            self.render('login.html')
+        if not self.isLogin():
+            message = _login_message
+            self.redirect('/welcome/'+message)
+            return
         else:
             subject = self.request.get('subject')
             content = self.request.get('content')
-            if subject and content:
-                key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-                post = db.get(key)
-                if not post:
-                    self.error(404)
-                    return
+            username = self.cur_username()
+            if not subject or not content:
+                error = 'subject and content cannot be empty!'
+                self.render('editpost.html', post_type = 'Edit Post', subject=subject, content=content, error=error, username = username)
+                return
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
+            if not post:
+                self.error(404)
+                return
+            if post.username == username:
                 post.subject = subject
                 post.content = content
                 post.put()
                 self.redirect('/blog/' + post_id)
             else:
-                error = 'subject and content cannot be empty!'
-                self.render('editpost.html', post_type = 'Edit Post', subject=subject, content=content, error=error)
+                message = _no_permission_message
+                self.redirect('/welcome/'+message)
 
 class LikedPost(Handler):
     def get(self, username):
-        username = self.cur_username()
-        user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
-        user = user_query.get()
-        if username and user:
-            like_id_list = user.like
-            posts = []
-            for id in like_id_list:
-                key = db.Key.from_path('Post', int(id), parent=blog_key())
-                post = db.get(key)
-                if post:
-                    posts.append(post)
-            self.render('likedpost.html', username = username, posts = posts)
-        else:
+        if not self.isLogin():
             message = _login_message
             self.redirect('/welcome/'+message)
+            return
+        else:
+            username = self.cur_username()
+            user_query = db.GqlQuery("SELECT * FROM User WHERE username = :username", username = username)
+            user = user_query.get()
+            if username and user:
+                like_id_list = user.like
+                posts = []
+                for id in like_id_list:
+                    key = db.Key.from_path('Post', int(id), parent=blog_key())
+                    post = db.get(key)
+                    if post:
+                        posts.append(post)
+                self.render('likedpost.html', username = username, posts = posts)
+            else:
+                message = _login_message
+                self.redirect('/welcome/'+message)
 
 class EditComment(Handler):
     def get(self, post_id, comment_id):
-        post_key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-        blog = db.get(post_key)
-        comment_key = db.Key.from_path('Comment', int(comment_id), parent=post_key)
-        comment = db.get(comment_key)
-        if comment.username == self.cur_username():
-            self.render('editcomment.html', comment = comment.content)
-        else:
-            message = _no_permission_message
+        if not self.isLogin():
+            message = _login_message
             self.redirect('/welcome/'+message)
+            return
+        else:
+            post_key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            blog = db.get(post_key)
+            comment_key = db.Key.from_path('Comment', int(comment_id), parent=post_key)
+            comment = db.get(comment_key)
+            username = self.cur_username()
+            if not comment:
+                message = _error_message
+                self.redirect('/welcome/'+message)
+            elif comment.username == username:
+                self.render('editcomment.html', comment = comment.content, username = username)
+            else:
+                message = _no_permission_message
+                self.redirect('/welcome/'+message)
 
     def post(self, post_id, comment_id):
         new_comment = self.request.get('comment')
@@ -482,10 +522,18 @@ class EditComment(Handler):
         blog = db.get(post_key)
         comment_key = db.Key.from_path('Comment', int(comment_id), parent=post_key)
         comment = db.get(comment_key)
-        if comment.username == self.cur_username():
-            comment.content = new_comment
-            comment.put()
-        self.redirect('/blog/'+post_id)
+        if blog and comment:
+            if comment.username == self.cur_username():
+                comment.content = new_comment
+                comment.put()
+                self.redirect('/blog/'+post_id)
+            else:
+                message = _no_permission_message
+                self.redirect('/welcome/'+message)
+        else:
+            message = _error_message
+            self.redirect('/welcome/'+message)
+
 
 
 app = webapp2.WSGIApplication([('/', Signup),
