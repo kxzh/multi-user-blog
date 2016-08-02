@@ -544,7 +544,7 @@ class EditComment(Handler):
 
 
 
-app = webapp2.WSGIApplication([('/', Signup),
+app = webapp2.WSGIApplication([('/', Welcome),
                                ('/signup', Signup),
                                ('/welcome', Welcome),
                                ('/welcome/(.*)', Welcome),
