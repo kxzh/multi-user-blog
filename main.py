@@ -359,22 +359,22 @@ class DeleteBlog(Handler):
     def get(self, post_id):
         post_key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         blog = db.get(post_key)
-        if blog:
-            username = self.cur_username()
-            if blog.username == username:
-                # delete all comments entries of this blog
-                for comment_key in blog.comment:
-                    comment = db.get(comment_key)
-                    if comment:
-                        comment.delete()
-                        blog.delete()
-                        # wait for database update
-                        time.sleep(0.5)
-                        self.redirect('/welcome')
-            else:
-                # not the author of this blog
-                message = _no_permission_message
-                self.redirect('/welcome/'+message)
+        username = self.cur_username()
+        if not blog:
+            message = 'Blog does not exist'
+            self.redirect('/welcome/'+message)
+        elif blog.username != username:
+            message = _no_permission_message
+            self.redirect('/welcome/'+message)
+        else:
+            # delete all comments entries of this blog
+            for comment_key in blog.comment:
+                comment = db.get(comment_key)
+                if comment:
+                    comment.delete()
+            blog.delete()
+            time.sleep(0.5) # wait for database update
+            self.redirect('/welcome')
 
 class DeleteComment(Handler):
     def get(self, post_id, comment_id):
@@ -396,7 +396,6 @@ class DeleteComment(Handler):
                 self.redirect('/welcome/'+message)
         else:
             self.redirect('/blog/'+post_id)
-
 
 class EditPost(Handler):
     def get(self, post_id):
