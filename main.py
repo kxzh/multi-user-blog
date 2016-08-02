@@ -171,7 +171,7 @@ class Signup(Handler):
         verify = self.request.get('verify')
         email = self.request.get('email')
 
-        params = dict(username = username, email = email)
+        params = dict(email = email)
 
         if not valid_username(username):
             params['error_username'] = "That's not a valid username."
@@ -217,8 +217,9 @@ class Welcome(Handler):
     def post(self, message=''):
         # Visitor not signed in cannot like/comment/edit/delete a post/comment
         if not self.isLogin():
-            message = _login_message
-            self.redirect('/welcome/' + message)
+            self.redirect('/login')
+            # message = _login_message
+            # self.redirect('/welcome/' + message)
             return
         # when user like/unlike a post on the front page,
         # a post_id hidden fild is auto filled with the id of that post
@@ -318,8 +319,9 @@ class PostPage(Handler):
 
     def post(self, post_id):
         if not self.isLogin():
-            message = _login_message
-            self.redirect('/welcome/' + message)
+            self.redirect('/login')
+            # message = _login_message
+            # self.redirect('/welcome/' + message)
             return
 
         like_button = self.request.get('like_button')
@@ -375,8 +377,9 @@ class PostPage(Handler):
 class DeleteBlog(Handler):
     def get(self, post_id):
         if not self.isLogin():
-            message = _login_message
-            self.redirect('/welcome/'+message)
+            self.redirect('/login')
+            # message = _login_message
+            # self.redirect('/welcome/'+message)
             return
 
         post_key = db.Key.from_path('Post', int(post_id), parent=blog_key())
@@ -403,8 +406,9 @@ class DeleteBlog(Handler):
 class DeleteComment(Handler):
     def get(self, post_id, comment_id):
         if not self.isLogin():
-            message = _login_message
-            self.redirect('/welcome/'+message)
+            self.redirect('/login')
+            # message = _login_message
+            # self.redirect('/welcome/'+message)
             return
         else:
             post_key = db.Key.from_path('Post', int(post_id), parent=blog_key())
@@ -429,8 +433,9 @@ class DeleteComment(Handler):
 class EditPost(Handler):
     def get(self, post_id):
         if not self.isLogin():
-            message = _login_message
-            self.redirect('/welcome/'+message)
+            self.redirect('/login')
+            # message = _login_message
+            # self.redirect('/welcome/'+message)
             return
         else:
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
@@ -440,15 +445,16 @@ class EditPost(Handler):
                 return
             username = self.cur_username()
             if post.username == username:
-                self.render('editpost.html', subject=post.subject, content=post.content, username = username)
+                self.render('editpost.html', post_type="Edit Post", subject=post.subject, content=post.content, username=username, post_id=post_id)
             else:
                 message = _no_permission_message
                 self.redirect('/welcome/'+message)
 
     def post(self, post_id):
         if not self.isLogin():
-            message = _login_message
-            self.redirect('/welcome/'+message)
+            self.redirect('/login')
+            # message = _login_message
+            # self.redirect('/welcome/'+message)
             return
         else:
             subject = self.request.get('subject')
@@ -456,7 +462,7 @@ class EditPost(Handler):
             username = self.cur_username()
             if not subject or not content:
                 error = 'subject and content cannot be empty!'
-                self.render('editpost.html', post_type = 'Edit Post', subject=subject, content=content, error=error, username = username)
+                self.render('editpost.html', post_type = 'Edit Post', subject=subject, content=content, error=error, username=username)
                 return
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
@@ -475,8 +481,9 @@ class EditPost(Handler):
 class LikedPost(Handler):
     def get(self, username):
         if not self.isLogin():
-            message = _login_message
-            self.redirect('/welcome/'+message)
+            self.redirect('/login')
+            # message = _login_message
+            # self.redirect('/welcome/'+message)
             return
         else:
             username = self.cur_username()
@@ -498,8 +505,9 @@ class LikedPost(Handler):
 class EditComment(Handler):
     def get(self, post_id, comment_id):
         if not self.isLogin():
-            message = _login_message
-            self.redirect('/welcome/'+message)
+            self.redirect('/login')
+            # message = _login_message
+            # self.redirect('/welcome/'+message)
             return
         else:
             post_key = db.Key.from_path('Post', int(post_id), parent=blog_key())
